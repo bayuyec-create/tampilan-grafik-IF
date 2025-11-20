@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peta Rumus Excel</title>
+    
+    <!-- 1. Tailwind CSS (Untuk Desain Ciamik) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Lucide Icons (Untuk Ikon) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Konfigurasi Font & Warna Custom -->
+    <style>
+        body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
+        /* Custom scrollbar agar rapi */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        /* Animasi transisi panel */
+        .panel-hidden { opacity: 0; transform: translateY(-1rem); max-height: 0; overflow: hidden; }
+        .panel-visible { opacity: 1; transform: translateY(0); max-height: 600px; }
+    </style>
+</head>
+<body class="h-screen bg-slate-900 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
+
+    <!-- HEADER -->
+    <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 z-50 shadow-md flex-none">
+        <div class="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-600 p-1.5 rounded-md shadow-lg shadow-emerald-600/20">
+                    <i data-lucide="layout" class="w-5 h-5 text-white"></i>
+                </div>
+                <h1 class="text-lg font-bold text-slate-200">Peta Rumus Excel</h1>
+            </div>
+            <div class="text-xs text-slate-500 font-mono bg-slate-900 px-2 py-1 rounded border border-slate-700 hidden sm:block">
+                Interactive Mode
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-y-auto w-full bg-slate-900">
+        <div class="flex flex-col items-center justify-start min-h-full py-8 px-4">
+            
+            <!-- CONTAINER DIAGRAM -->
+            <div class="relative w-full max-w-4xl aspect-[4/3] sm:aspect-video mb-8 shrink-0">
+                
+                <!-- LAYER 1: SVG LINES (Garis Penghubung) -->
+                <svg id="svg-lines" class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <defs>
+                        <marker id="arrow-green" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill="#10b981" /></marker>
+                        <marker id="arrow-red" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill="#f43f5e" /></marker>
+                    </defs>
+                    <!-- Paths akan digenerate via JavaScript -->
+                </svg>
+
+                <!-- LAYER 2: HTML NODES (Kotak-kotak) -->
+                <div id="nodes-container" class="absolute inset-0 w-full h-full z-10 pointer-events-none">
+                    <!-- Nodes akan digenerate via JavaScript -->
+                </div>
+            </div>
+
+            <!-- DETAIL PANEL (Pop-up Bawah) -->
+            <div id="detail-panel" class="w-full max-w-3xl transition-all duration-500 ease-in-out panel-hidden">
+                <div class="bg-slate-800/95 backdrop-blur-md border border-slate-600 rounded-xl shadow-2xl p-6 mx-auto">
+                    <div class="flex flex-col gap-4">
+                        <!-- Header Panel -->
+                        <div class="flex justify-between items-start border-b border-slate-700 pb-3">
+                            <h3 id="panel-title" class="text-xl font-bold text-white flex items-center gap-2">
+                                <!-- Icon & Title injected via JS -->
+                            </h3>
+                            <button onclick="closePanel()" class="p-1 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-colors">
+                                <i data-lucide="x" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Deskripsi -->
+                        <p id="panel-desc" class="text-slate-300 leading-relaxed bg-slate-900/50 p-3 rounded-lg border-l-4 border-blue-500/50 hidden"></p>
+                        
+                        <!-- Syntax & Contoh -->
+                        <div id="panel-code-area" class="grid gap-4 mt-2 hidden">
+                            <div class="space-y-1">
+                                <div class="text-xs font-bold text-emerald-500 uppercase tracking-wider">Rumus Dasar</div>
+                                <div id="panel-syntax" class="bg-slate-950 p-4 rounded-lg border border-slate-700 font-mono text-emerald-400 text-sm md:text-base break-all shadow-inner"></div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="text-xs font-bold text-cyan-500 uppercase tracking-wider">Contoh Penggunaan</div>
+                                <div id="panel-example" class="bg-slate-950 p-4 rounded-lg border border-slate-700 font-mono text-cyan-400 text-sm md:text-base break-all shadow-inner"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- DATA ---
+        const NODES = [
+            { id: 'start', type: 'decision', label: 'Punya 2 Syarat\nSetara?', x: 20, y: 15, desc: "Mulai di sini. Cek apakah kamu punya 2 kondisi logis yang posisinya sejajar." },
+            { id: 'dec_semua', type: 'decision', label: 'Semua Syarat Harus\nTerpenuhi?', x: 50, y: 15, desc: "Apakah kedua-duanya wajib BENAR agar hasilnya TRUE?" },
+            { id: 'res_and', type: 'result', label: 'IF AND', x: 80, y: 15, syntax: '=IF(AND(Syarat1, Syarat2), "Benar", "Salah")', example: '=IF(AND(A2="Lulus", B2>80), "Diterima", "Tolak")' },
+            { id: 'dec_bertingkat', type: 'decision', label: 'Punya 2 Syarat\nBertingkat?', x: 20, y: 50, desc: "Apakah syarat kedua hanya dicek jika syarat pertama terpenuhi (atau gagal)?" },
+            { id: 'dec_salahsatu', type: 'decision', label: 'Cukup Salah Satu\nSyarat Terpenuhi?', x: 50, y: 50, desc: "Jika salah satu saja benar, apakah sudah dianggap lolos?" },
+            { id: 'res_or', type: 'result', label: 'IF OR', x: 80, y: 50, syntax: '=IF(OR(Syarat1, Syarat2), "Benar", "Salah")', example: '=IF(OR(A2="VIP", B2>1Juta), "Diskon", "Normal")' },
+            { id: 'res_tunggal', type: 'result', label: 'IF Tunggal', x: 10, y: 85, syntax: '=IF(Syarat, "Benar", "Salah")', example: '=IF(A2>75, "Lulus", "Remedial")' },
+            { id: 'res_bertingkat', type: 'result', label: 'IF Bertingkat', x: 30, y: 85, syntax: '=IF(S1, "H1", IF(S2, "H2", "H3"))', example: '=IF(Nilai>90, "A", IF(Nilai>75, "B", "C"))' },
+        ];
+
+        const EDGES = [
+            { from: 'start', to: 'dec_semua', label: 'Ya', color: 'green', direction: 'right' },
+            { from: 'dec_semua', to: 'res_and', label: 'Ya', color: 'green', direction: 'right' },
+            { from: 'start', to: 'dec_bertingkat', label: 'Tidak', color: 'red', direction: 'down' },
+            { from: 'dec_semua', to: 'dec_salahsatu', label: 'Tidak', color: 'red', direction: 'down' },
+            { from: 'dec_salahsatu', to: 'res_or', label: 'Ya', color: 'green', direction: 'right' },
+            { from: 'dec_bertingkat', to: 'res_tunggal', label: 'Tidak', color: 'red', type: 'elbow-left' },
+            { from: 'dec_bertingkat', to: 'res_bertingkat', label: 'Ya', color: 'green', type: 'elbow-right' },
+        ];
+
+        // --- STATE ---
+        let selectedNodeId = null;
+        let hoveredNodeId = null;
+
+        // --- HELPER FUNCTIONS ---
+        function getPath(start, end, type) {
+            if (type === 'elbow-left' || type === 'elbow-right') {
+                const midY = start.y + 15;
+                return `M ${start.x} ${start.y} L ${start.x} ${midY} L ${end.x} ${midY} L ${end.x} ${end.y}`;
+            }
+            if (Math.abs(start.y - end.y) < 2) return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+            if (Math.abs(start.x - end.x) < 2) return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+            return `M ${start.x} ${start.y} L ${start.x} ${end.y} L ${end.x} ${end.y}`;
+        }
+
+        function getLabelPos(start, end, type) {
+            if (type === 'elbow-left' || type === 'elbow-right') {
+                const midY = start.y + 15;
+                return { x: (start.x + end.x) / 2, y: midY };
+            }
+            return { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+        }
+
+        // --- RENDER FUNCTIONS ---
+        function renderDiagram() {
+            const svgContainer = document.getElementById('svg-lines');
+            const nodesContainer = document.getElementById('nodes-container');
+            
+            // Clear contents
+            svgContainer.innerHTML = `<defs>
+                        <marker id="arrow-green" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill="#10b981" /></marker>
+                        <marker id="arrow-red" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill="#f43f5e" /></marker>
+                    </defs>`; 
+            nodesContainer.innerHTML = '';
+
+            // 1. Render Edges
+            EDGES.forEach((edge, idx) => {
+                const startNode = NODES.find(n => n.id === edge.from);
+                const endNode = NODES.find(n => n.id === edge.to);
+                
+                let sx = startNode.x, sy = startNode.y;
+                let ex = endNode.x, ey = endNode.y;
+
+                if (edge.direction === 'right') { sx += 10; ex -= 10; }
+                else if (edge.direction === 'down') { sy += 6; ey -= 6; }
+                else if (edge.type === 'elbow-left' || edge.type === 'elbow-right') { sy += 6; ey -= 6; }
+
+                const pathD = getPath({x:sx, y:sy}, {x:ex, y:ey}, edge.type);
+                const labelPos = getLabelPos({x:sx, y:sy}, {x:ex, y:ey}, edge.type);
+                const color = edge.color === 'green' ? '#10b981' : '#f43f5e';
+
+                // Group for path + text
+                const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                g.setAttribute('id', `edge-${idx}`);
+                g.setAttribute('class', 'transition-all duration-300');
+
+                // Path
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute('d', pathD);
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke', color); // Default color
+                path.setAttribute('stroke-width', '0.3');
+                path.setAttribute('marker-end', `url(#arrow-${edge.color})`);
+                g.appendChild(path);
+
+                // Label Rect (Background)
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute('x', labelPos.x - 3);
+                rect.setAttribute('y', labelPos.y - 2);
+                rect.setAttribute('width', '6');
+                rect.setAttribute('height', '4');
+                rect.setAttribute('fill', '#0f172a');
+                rect.setAttribute('rx', '1');
+                rect.setAttribute('stroke', color);
+                rect.setAttribute('stroke-width', '0.1');
+                g.appendChild(rect);
+
+                // Label Text
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute('x', labelPos.x);
+                text.setAttribute('y', labelPos.y + 1);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', color);
+                text.setAttribute('font-size', '2.5');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('class', 'uppercase font-mono');
+                text.textContent = edge.label;
+                g.appendChild(text);
+
+                svgContainer.appendChild(g);
+            });
+
+            // 2. Render Nodes
+            NODES.forEach(node => {
+                const btn = document.createElement('button');
+                btn.id = `node-${node.id}`;
+                btn.className = `absolute transform -translate-x-1/2 -translate-y-1/2 w-[18%] h-[12%] sm:h-[10%] flex items-center justify-center p-2 rounded-lg border shadow-xl transition-all duration-200 pointer-events-auto group`;
+                btn.style.left = `${node.x}%`;
+                btn.style.top = `${node.y}%`;
+                
+                // Initial Style (Inactive)
+                const isResult = node.type === 'result';
+                const baseClass = isResult ? 'bg-emerald-900/40 border-emerald-700/50' : 'bg-slate-800 border-slate-600';
+                btn.classList.add(...baseClass.split(' '));
+
+                // Text Content
+                const span = document.createElement('span');
+                span.className = `text-[8px] sm:text-[10px] md:text-xs font-bold text-center leading-tight ${isResult ? 'text-emerald-300' : 'text-slate-200'}`;
+                span.innerText = node.label;
+                btn.appendChild(span);
+
+                // Events
+                btn.onclick = () => selectNode(node.id);
+                btn.onmouseenter = () => setHover(node.id);
+                btn.onmouseleave = () => setHover(null);
+
+                nodesContainer.appendChild(btn);
+            });
+        }
+
+        // --- INTERACTION LOGIC ---
+        function selectNode(id) {
+            selectedNodeId = id;
+            const node = NODES.find(n => n.id === id);
+            updateVisuals();
+            
+            if (node) {
+                // Populate Panel
+                const titleEl = document.getElementById('panel-title');
+                const iconHtml = node.type === 'result' 
+                    ? `<i data-lucide="calculator" class="w-6 h-6 text-emerald-400"></i>` 
+                    : `<i data-lucide="info" class="w-6 h-6 text-blue-400"></i>`;
+                titleEl.innerHTML = `${iconHtml} ${node.label.replace('\n', ' ')}`;
+
+                const descEl = document.getElementById('panel-desc');
+                if (node.desc) {
+                    descEl.innerText = node.desc;
+                    descEl.classList.remove('hidden');
+                } else {
+                    descEl.classList.add('hidden');
+                }
+
+                const codeArea = document.getElementById('panel-code-area');
+                if (node.syntax) {
+                    document.getElementById('panel-syntax').innerText = node.syntax;
+                    document.getElementById('panel-example').innerText = node.example;
+                    codeArea.classList.remove('hidden');
+                } else {
+                    codeArea.classList.add('hidden');
+                }
+
+                // Show Panel
+                const panel = document.getElementById('detail-panel');
+                panel.classList.remove('panel-hidden');
+                panel.classList.add('panel-visible');
+                
+                // Scroll to panel
+                setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+                
+                // Re-init icons in panel
+                lucide.createIcons();
+            }
+        }
+
+        function closePanel() {
+            selectedNodeId = null;
+            updateVisuals();
+            const panel = document.getElementById('detail-panel');
+            panel.classList.remove('panel-visible');
+            panel.classList.add('panel-hidden');
+        }
+
+        function setHover(id) {
+            hoveredNodeId = id;
+            updateVisuals();
+        }
+
+        function updateVisuals() {
+            // Update Nodes
+            NODES.forEach(node => {
+                const btn = document.getElementById(`node-${node.id}`);
+                const isSelected = selectedNodeId === node.id;
+                const isResult = node.type === 'result';
+
+                // Reset classes
+                btn.className = `absolute transform -translate-x-1/2 -translate-y-1/2 w-[18%] h-[12%] sm:h-[10%] flex items-center justify-center p-2 rounded-lg border shadow-xl transition-all duration-200 pointer-events-auto cursor-pointer`;
+                
+                if (isSelected) {
+                    btn.classList.add('scale-110', 'z-20', 'ring-2', 'ring-white', 'bg-slate-700', 'border-emerald-400');
+                } else {
+                    // Base style
+                    if (isResult) btn.classList.add('bg-emerald-900/40', 'border-emerald-700/50');
+                    else btn.classList.add('bg-slate-800', 'border-slate-600');
+
+                    // Hover effect via JS since we are managing state manually
+                    if (hoveredNodeId === node.id) {
+                        btn.classList.add('scale-105', 'border-emerald-400');
+                    }
+                }
+            });
+
+            // Update Edges
+            EDGES.forEach((edge, idx) => {
+                const g = document.getElementById(`edge-${idx}`);
+                const path = g.querySelector('path');
+                const isHovered = hoveredNodeId && (hoveredNodeId === edge.from || hoveredNodeId === edge.to);
+                
+                if (isHovered) {
+                    path.setAttribute('stroke-width', '0.6');
+                    path.setAttribute('stroke-dasharray', '2');
+                } else {
+                    path.setAttribute('stroke-width', '0.3');
+                    path.setAttribute('stroke-dasharray', '0');
+                }
+            });
+        }
+
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            renderDiagram();
+            lucide.createIcons();
+        };
+
+    </script>
+</body>
+</html>
